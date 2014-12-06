@@ -28,6 +28,12 @@ namespace RPG {
 @enum2_footer
 			};
 		};
+@names_tmpl
+		static const char * const %(ename)s_to_string[];
+@names2_tmpl
+		static const std::map<int,const char *> %(ename)s_to_string;
+@names3_tmpl
+		static const std::map<const char *,int,string_less> %(ename)s_from_string;
 @ctor
 		%(structname)s();
 @tmpl

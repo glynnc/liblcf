@@ -28,6 +28,7 @@ liblcf_la_SOURCES = \
 	reader_xml.cpp \
 	rpg_fixup.cpp \
 	rpg_setup.cpp \
+	string_less.cpp \
 	writer_lcf.cpp \
 	writer_xml.cpp \
 	generated/ldb_actor.cpp \
@@ -171,6 +172,7 @@ pkginclude_HEADERS = \
 	reader_types.h \
 	reader_util.h \
 	reader_xml.h \
+	string_less.h \
 	writer_lcf.h \
 	writer_xml.h \
 	generated/ldb_chunks.h \

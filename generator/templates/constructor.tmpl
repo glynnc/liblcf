@@ -1,6 +1,11 @@
 @header
 // Headers
 #include "rpg_%(filename)s.h"
+@header_map
+#include <boost/assign/list_of.hpp>
+#include <map>
+#include "string_less.h"
+@header2
 
 /**
  * Constructor.
@@ -12,3 +17,27 @@ RPG::%(structname)s::%(structname)s() {
 	%(fname)s.%(name)s = false;
 @footer
 }
+@enums
+
+/**
+ * Enumerations
+ */
+
+@enum_header
+const char * const RPG::%(structname)s::%(ename)s_to_string[] = {
+@enum_tmpl
+	"%(name)s"%(comma)s
+@enum_footer
+};
+@enum2_header
+const std::map<int,const char *> RPG::%(structname)s::%(ename)s_to_string = boost::assign::map_list_of
+@enum2_tmpl
+	(%(num)d, "%(name)s")
+@enum2_footer
+	;
+@enum3_header
+const std::map<const char *,int,string_less> RPG::%(structname)s::%(ename)s_from_string = boost::assign::map_list_of
+@enum3_tmpl
+	("%(name)s", %(num)d)
+@enum3_footer
+	;

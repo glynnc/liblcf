@@ -8,8 +8,10 @@ import re
 
 csv_dir = 'csv'
 tmpl_dir = 'templates'
-srcdir = '../src/generated'
-hdrdir = '../src/generated'
+srcdir = '../src/generated.tmp'
+hdrdir = srcdir
+dstdir = '../src/generated'
+enum_introspection = False
 
 class Template(object):
     def __init__(self, filename):
@@ -216,6 +218,10 @@ def get_headers(structs, sfields, setup):
             if not ftype:
                 continue
             headers.update(struct_headers(ftype, header_map))
+        if needs_enums(struct_name):
+            headers.add("<string>")
+            headers.add("<map>")
+            headers.add('"string_less.h"')
         if struct_name in setup:
             for method, hdrs in setup[struct_name]:
                 headers.update(hdrs)
@@ -237,6 +243,12 @@ def write_enums(sname, f):
                         comma = comma)
             f.write(dcl.enum_tmpl % vars)
         f.write(dcl.enum_footer % evars)
+        if enum_introspection:
+            if packed_enum(sname, ename):
+                f.write(dcl.names_tmpl % evars)
+            else:
+                f.write(dcl.names2_tmpl % evars)
+            f.write(dcl.names3_tmpl % evars)
     f.write('\n')
 
 def write_setup(sname, f):
@@ -269,6 +281,9 @@ def write_flags(f, sname, fname):
 def generate_ctor(f, struct_name, hasid, vars):
     f.write(copy.header)
     f.write(ctor.header % vars)
+    if needs_enums(struct_name):
+        f.write(ctor.header_map)
+    f.write(ctor.header2 % vars)
     if hasid:
         f.write(ctor.tmpl % dict(fname = 'ID', default = '0'))
     for field in sfields[struct_name]:
@@ -302,6 +317,41 @@ def generate_ctor(f, struct_name, hasid, vars):
         f.write('\n\tInit();\n')
     f.write(ctor.footer % vars)
 
+def generate_enums(f, struct_name):
+    f.write(ctor.enums);
+    for ename in enums[struct_name]:
+        if packed_enum(struct_name, ename):
+            head = ctor.enum_header
+            tmpl = ctor.enum_tmpl
+            foot = ctor.enum_footer
+        else:
+            head = ctor.enum2_header
+            tmpl = ctor.enum2_tmpl
+            foot = ctor.enum2_footer
+        evars = dict(structname = struct_name,
+                     ename = ename)
+        f.write(head % evars)
+        ef = efields[struct_name, ename]
+        n = len(ef)
+        for i, (name, num) in enumerate(ef):
+            comma = '' if i == n - 1 else ','
+            vars = dict(name = name,
+                        num = num,
+                        comma = comma)
+            f.write(tmpl % vars)
+        f.write(foot % evars)
+        f.write(ctor.enum3_header % evars)
+        ef = efields[struct_name, ename]
+        n = len(ef)
+        for i, (name, num) in enumerate(ef):
+            comma = '' if i == n - 1 else ','
+            vars = dict(name = name,
+                        num = num,
+                        comma = comma)
+            f.write(ctor.enum3_tmpl % vars)
+        f.write(ctor.enum3_footer % evars)
+    f.write('\n')
+
 def needs_ctor(struct_name, hasid):
     if hasid:
         return True
@@ -316,6 +366,18 @@ def needs_ctor(struct_name, hasid):
         if dfl != '':
             return True
     return False
+
+def needs_enums(struct_name):
+    return enum_introspection and struct_name in enums
+
+def packed_enum(struct_name, ename):
+    ef = efields[struct_name, ename]
+    n = len(ef)
+    for i, (name, num) in enumerate(ef):
+        if num != i:
+            # print 'enum %s::%s not packed' % (struct_name, ename)
+            return False
+    return True
 
 def generate_header(f, struct_name, hasid, vars):
     f.write(copy.header)
@@ -390,10 +452,13 @@ def generate_struct(filetype, filename, struct_name, hasid):
     with open(filepath, 'w') as f:
         generate_reader(f, struct_name, vars)
 
-    if needs_ctor(struct_name, hasid):
+    if needs_ctor(struct_name, hasid) or needs_enums(struct_name):
         filepath = os.path.join(srcdir, 'rpg_%s.cpp' % filename)
         with open(filepath, 'w') as f:
-            generate_ctor(f, struct_name, hasid, vars)
+            if needs_ctor(struct_name, hasid):
+                generate_ctor(f, struct_name, hasid, vars)
+            if needs_enums(struct_name):
+                generate_enums(f, struct_name)
 
     filepath = os.path.join(hdrdir, 'rpg_%s.h' % filename)
     with open(filepath, 'w') as f:
@@ -409,10 +474,13 @@ def generate_rawstruct(filename, struct_name):
         structname = struct_name,
         structupper = struct_name.upper())
 
-    if needs_ctor(struct_name, False):
+    if needs_ctor(struct_name, False) or needs_enums(struct_name):
         filepath = os.path.join(srcdir, 'rpg_%s.cpp' % filename)
         with open(filepath, 'w') as f:
-            generate_ctor(f, struct_name, False, vars)
+            if needs_ctor(struct_name, False):
+                generate_ctor(f, struct_name, False, vars)
+            if needs_enums(struct_name):
+                generate_enums(f, struct_name)
 
     filepath = os.path.join(hdrdir, 'rpg_%s.h' % filename)
     with open(filepath, 'w') as f:
@@ -498,13 +566,29 @@ def list_files():
         if struct_name in flags:
             list_files_flags(filetype, filename, struct_name)
 
+def differ(srcfile, dstfile):
+    with open(srcfile,'r') as f:
+        src = f.read()
+    with open(dstfile,'r') as f:
+        dst = f.read()
+    return src != dst
+
+def update():
+    if not os.path.exists(dstdir):
+        os.mkdir(dstdir)
+
+    for file in os.listdir(srcdir):
+        srcfile = os.path.join(srcdir, file)
+        dstfile = os.path.join(dstdir, file)
+        if (not os.path.exists(dstfile) or
+            os.path.getsize(srcfile) != os.path.getsize(dstfile) or
+            differ(srcfile, dstfile)):
+            os.remove(dstfile)
+            os.rename(srcfile, dstfile)
+        else:
+            os.remove(srcfile)
+
 def main(argv):
-    if not os.path.exists(srcdir):
-        os.mkdir(srcdir)
-
-    if not os.path.exists(hdrdir):
-        os.mkdir(hdrdir)
-
     global structs, sfields, enums, efields, flags, setup, headers
 
     structs = get_structs()
@@ -517,7 +601,11 @@ def main(argv):
     if argv[1:] == ['-l']:
         list_files()
     else:
+        if not os.path.exists(srcdir):
+            os.mkdir(srcdir)
         generate()
+        update()
+        os.rmdir(srcdir)
 
 if __name__ == '__main__':
     main(sys.argv)
