@@ -364,6 +364,7 @@
     <ClCompile Include="..\..\src\reader_xml.cpp" />
     <ClCompile Include="..\..\src\rpg_fixup.cpp" />
     <ClCompile Include="..\..\src\rpg_setup.cpp" />
+    <ClCompile Include="..\..\src\string_less.cpp" />
     <ClCompile Include="..\..\src\writer_lcf.cpp" />
     <ClCompile Include="..\..\src\writer_xml.cpp" />
     <ClCompile Include="..\..\src\generated\ldb_actor.cpp" />
@@ -505,6 +506,7 @@
     <ClInclude Include="..\..\src\reader_types.h" />
     <ClInclude Include="..\..\src\reader_util.h" />
     <ClInclude Include="..\..\src\reader_xml.h" />
+    <ClInclude Include="..\..\src\string_less.h" />
     <ClInclude Include="..\..\src\writer_lcf.h" />
     <ClInclude Include="..\..\src\writer_xml.h" />
     <ClInclude Include="..\..\src\generated\ldb_chunks.h" />
