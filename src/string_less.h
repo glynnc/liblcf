@@ -9,7 +9,7 @@
 
 class string_less {
 public:
-	bool operator()(const char *, const char *);
+	bool operator()(const char *, const char *) const;
 };
 
 #endif

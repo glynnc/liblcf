@@ -12,6 +12,8 @@
 LCF_STRUCT_FIELDS_BEGIN()
 @size_tmpl
 	LCF_STRUCT_SIZE_FIELD(%(ftype)s, %(fname)s),
+@enum_tmpl
+	LCF_STRUCT_ENUM_FIELD(%(fname)s, %(etype1)s, %(etype2)s),
 @typed_tmpl
 	LCF_STRUCT_TYPED_FIELD(%(ftype)s, %(fname)s),
 @footer

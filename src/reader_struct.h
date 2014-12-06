@@ -413,6 +413,41 @@ struct TypedField : public Field<S> {
 };
 
 /**
+ * EnumField class template.
+ */
+template <class S>
+struct EnumField : public TypedField<S, int> {
+	const std::map<const char *,int,string_less>& from_string;
+	const char * const * const to_string_array;
+	const std::map<int,const char *> * const to_string_map;
+
+	void WriteXml(const S& obj, XmlWriter& stream) const {
+		stream.BeginElement(this->name);
+		int val = obj.*TypedField<S, int>::ref;
+		std::string str(to_string_array
+			? to_string_array[val]
+			: to_string_map->at(val));
+		stream.Write(str);
+		stream.EndElement(this->name);
+	}
+	void ParseXml(S& obj, const std::string& data) const {
+		obj.*TypedField<S, int>::ref = from_string.at(data.c_str());
+	}
+
+	EnumField(int S::*ref, int id, const char* name,
+			  const std::map<const char *,int,string_less>& from_string,
+			  const char * const *to_string) :
+		TypedField<S, int>(ref, id, name), from_string(from_string),
+		to_string_array(to_string), to_string_map(NULL) {}
+
+	EnumField(int S::*ref, int id, const char* name,
+			  const std::map<const char *,int,string_less>& from_string,
+			  const std::map<int,const char *>& to_string) :
+		TypedField<S, int>(ref, id, name), from_string(from_string),
+		to_string_array(NULL), to_string_map(&to_string) {}
+};
+
+/**
  * SizeField class template.
  */
 template <class S, class T>
@@ -716,6 +751,15 @@ private:
 		  &RPG::LCF_CURRENT_STRUCT::REF \
 		, LCF_CHUNK_SUFFIX::BOOST_PP_CAT(Chunk, LCF_CURRENT_STRUCT)::REF \
 		, BOOST_PP_STRINGIZE(REF) \
+	) \
+
+#define LCF_STRUCT_ENUM_FIELD(REF, C, E)		   \
+	new EnumField<RPG::LCF_CURRENT_STRUCT>( \
+		  &RPG::LCF_CURRENT_STRUCT::REF \
+		, LCF_CHUNK_SUFFIX::BOOST_PP_CAT(Chunk, LCF_CURRENT_STRUCT)::REF \
+		, BOOST_PP_STRINGIZE(REF) \
+		, RPG::C::BOOST_PP_CAT(E,_from_string) \
+		, RPG::C::BOOST_PP_CAT(E,_to_string) \
 	) \
 
 #define LCF_STRUCT_SIZE_FIELD(T, REF) \

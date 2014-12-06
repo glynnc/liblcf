@@ -7,7 +7,7 @@
 #include <cstring>
 #include "string_less.h"
 
-bool string_less::operator()(const char *a, const char *b)
+bool string_less::operator()(const char *a, const char *b) const
 {
 	return std::strcmp(a, b) < 0;
 }

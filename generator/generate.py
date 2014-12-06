@@ -142,6 +142,12 @@ def struct_headers(ty, header_map):
 
     return []
 
+def enum_type(ty):
+    m = re.match(r'Enum<(.*)_(.*)>', ty)
+    if m:
+        return (m.group(1), m.group(2))
+    return None
+    
 def get_structs(filename = 'structs.csv'):
     result = []
     with open(os.path.join(csv_dir, filename), 'r') as f:
@@ -262,11 +268,20 @@ def generate_reader(f, struct_name, vars):
         fname, issize, ftype, code, dfl, comment = field
         if not ftype:
             continue
+        etype = enum_type(ftype)
+        if etype is not None:
+            etype1, etype2 = etype
+        else:
+            etype1, etype2 = None, None
         fvars = dict(
             ftype = cpp_type(ftype),
-            fname = fname)
+            fname = fname,
+            etype1 = etype1,
+            etype2 = etype2)
         if issize:
             f.write(reader.size_tmpl % fvars)
+        elif enum_introspection and etype:
+            f.write(reader.enum_tmpl % fvars)
         else:
             f.write(reader.typed_tmpl % fvars)
     f.write(reader.footer % vars)
