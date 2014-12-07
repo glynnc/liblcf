@@ -19,6 +19,7 @@
 #include "writer_lcf.h"
 #include "reader_xml.h"
 #include "writer_xml.h"
+#include "string_less.h"
 #include "rpg_eventpagecondition.h"
 #include "rpg_trooppagecondition.h"
 #include "rpg_terrain.h"
